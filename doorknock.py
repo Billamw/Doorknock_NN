@@ -25,7 +25,7 @@ while True:
     np_data = np.frombuffer(data, dtype=np.int16)
 
     # MFCCs berechnen
-    mfccs = librosa.feature.mfcc(np_data, sr=44100)
+    mfccs = librosa.feature.mfcc(np_data, sr=22050)
 
     # Daten in ein Tensor konvertieren
     tensor = torch.from_numpy(mfccs).float()
