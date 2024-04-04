@@ -7,22 +7,41 @@ import time
 
 model = torch.load("data/models/KnnmodelV2-2.pt")
 
-p = pyaudio.PyAudio()
+# Audio-Parameter
+CHUNK = 1050  # Blockgröße | n teile von 44100
+FORMAT = pyaudio.paInt16  # Datenformat
+CHANNELS = 1  # Anzahl der Kanäle
+RATE = 44100  # Abtastrate
 
-print("Öffne Mikrofon...")
-stream = p.open(
-    format=pyaudio.paInt16,
-    channels=1,
-    rate=44100,
-    input=True,
-    frames_per_buffer=1024,
-)
+
+
+
 
 print("Starte Klopfen-Erkennung...")
 while True:
+    p = pyaudio.PyAudio()
+
+    print("Öffne Mikrofon...")
+    stream = p.open(
+        format=pyaudio.paInt16,
+        channels=1,
+        rate=44100,
+        input=True,
+        frames_per_buffer=1024,
+    )
     # Audiodaten vom Mikrofon lesen
     start = time.time()
-    data = stream.read(3*1024)
+        # Aufnahme und Speicherung der Audiodaten
+    frames = []
+    for i in range(0, int(RATE / CHUNK * 2)):
+        data = stream.read(CHUNK)
+        frames.append(data)
+
+    # Aufräumen
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
     end = time.time()
     print(f"Time taken: {end-start}")
 
