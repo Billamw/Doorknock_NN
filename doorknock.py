@@ -5,6 +5,7 @@ import numpy as np
 import librosa
 import time
 from AudioUtil import AudioUtil
+from AudioClassifier import AudioClassifier
 
 print(torch.__version__)
 
