@@ -4,8 +4,9 @@ import pyaudio
 import numpy as np
 import librosa
 import time
+from AudioUtil import AudioUtil
 
-model = torch.load("data/models/KnnmodelV2-2.pt")
+model = torch.load("data/models/V8_model.pth")
 
 # Audio-Parameter
 CHUNK = 1050  # Blockgröße | n teile von 44100
@@ -24,7 +25,7 @@ while True:
     print("Öffne Mikrofon...")
     stream = p.open(
         format=pyaudio.paInt16,
-        channels=1,
+        channels=2,
         rate=44100,
         input=True,
         frames_per_buffer=1024,
@@ -51,18 +52,18 @@ while True:
     if not np.all(np.isfinite(np_data)):
         print("Warning: Audio data contains non-finite values. Replacing with zeros.")
         np_data = np.nan_to_num(np_data)
+    
+    # -- new added code --
+    aud = torch.from_numpy(np_data).float()
 
-    spectrum = librosa.feature.melspectrogram(y=np_data, sr=44100, n_mels=128, fmax=8000)
-    # flatten the spectrum
-    spectrum = spectrum.flatten()
-    print(spectrum.shape)
-    end = time.time()
-    print(f"Time taken: {end-start}")
-    # Daten in ein Tensor konvertieren
-    tensor = torch.from_numpy(spectrum).float().to("cuda")
-    print(tensor.shape)
-    # Vorhersage des Modells
-    prediction = model(tensor)
+    reaud = AudioUtil.resample(aud, sr)
+    rechan = AudioUtil.rechannel(reaud, channel)
+
+    dur_aud = AudioUtil.pad_trunc(rechan, duration)
+    shift_aud = AudioUtil.time_shift(dur_aud, shift_pct)
+    sgram = AudioUtil.spectro_gram(shift_aud, n_mels=64, n_fft=1024, hop_len=None)
+    # aug_sgram = AudioUtil.spectro_augment(sgram, max_mask_pct=0.1, n_freq_masks=2, n_time_masks=2)
+    prediction = model(sgram)
 
     # Wenn Klopfen erkannt wird, Signal an Kopfhörer senden
     if prediction > 0.5:
