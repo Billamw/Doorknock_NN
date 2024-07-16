@@ -9,8 +9,9 @@ class AudioClassifier (nn.Module):
     # ----------------------------
     # Build the model architecture
     # ----------------------------
-    def __init__(self):
+    def __init__(self, out_features=2):
         super().__init__()
+        self.out_features = out_features
         conv_layers = []
 
         # First Convolution Block with Relu and Batch Norm. Use Kaiming Initialization
@@ -47,7 +48,7 @@ class AudioClassifier (nn.Module):
 
         # Linear Classifier
         self.ap = nn.AdaptiveAvgPool2d(output_size=1)
-        self.lin = nn.Linear(in_features=64, out_features=2)
+        self.lin = nn.Linear(in_features=64, out_features=self.out_features)
 
         # Wrap the Convolutional Blocks
         self.conv = nn.Sequential(*conv_layers)
@@ -67,4 +68,4 @@ class AudioClassifier (nn.Module):
         x = self.lin(x)
 
         # Final output
-        return x
+        return F.softmax(x, dim=1)
