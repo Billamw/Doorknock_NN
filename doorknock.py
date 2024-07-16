@@ -6,12 +6,14 @@ import librosa
 import time
 from AudioUtil import AudioUtil
 
+print(torch.__version__)
+
 model = torch.load("data/models/V8_model.pth")
 
 # Audio-Parameter
 CHUNK = 1050  # Blockgröße | n teile von 44100
 FORMAT = pyaudio.paInt16  # Datenformat
-CHANNELS = 1  # Anzahl der Kanäle
+CHANNELS = 2  # Anzahl der Kanäle
 RATE = 44100  # Abtastrate
 
 
@@ -25,8 +27,8 @@ while True:
     print("Öffne Mikrofon...")
     stream = p.open(
         format=pyaudio.paInt16,
-        channels=2,
-        rate=44100,
+        channels=CHANNELS,
+        rate=RATE,
         input=True,
         frames_per_buffer=1024,
     )
@@ -56,12 +58,11 @@ while True:
     # -- new added code --
     aud = torch.from_numpy(np_data).float()
 
-    reaud = AudioUtil.resample(aud, sr)
-    rechan = AudioUtil.rechannel(reaud, channel)
+    reaud = AudioUtil.resample(aud, RATE)
+    rechan = AudioUtil.rechannel(reaud, CHANNELS)
 
-    dur_aud = AudioUtil.pad_trunc(rechan, duration)
-    shift_aud = AudioUtil.time_shift(dur_aud, shift_pct)
-    sgram = AudioUtil.spectro_gram(shift_aud, n_mels=64, n_fft=1024, hop_len=None)
+    dur_aud = AudioUtil.pad_trunc(rechan, 2000)
+    sgram = AudioUtil.spectro_gram(sgram, n_mels=64, n_fft=1024, hop_len=None)
     # aug_sgram = AudioUtil.spectro_augment(sgram, max_mask_pct=0.1, n_freq_masks=2, n_time_masks=2)
     prediction = model(sgram)
 
