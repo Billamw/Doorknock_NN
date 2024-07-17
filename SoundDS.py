@@ -29,7 +29,15 @@ class SoundDS(Dataset):
     audio_file = self.files[idx]
     # Get the Class ID
     # print(audio_file.split('_')[0])
-    class_id = 0 if audio_file.split('_')[0] == 'noise' else 1
+
+    if audio_file.split('_')[0] == 'knock':
+      class_id = 1
+    else:
+      class_id = 0
+    if audio_file.split('_')[1] == 'with':
+      class_id = 2
+
+    # class_id = 0 if audio_file.split('_')[0] == 'noise' else 1
 
     aud = AudioUtil.open(os.path.join(self.data_path, audio_file))
     # Some sounds have a higher sample rate, or fewer channels compared to the
