@@ -1,74 +1,76 @@
 import torch
-import torchaudio
 import pyaudio
-import numpy as np
-import librosa
-import time
-from AudioUtil import AudioUtil
-from AudioClassifier import AudioClassifier
+import wave
+import os
+import model.AudioUtil as AudioUtil
 
 print(torch.__version__)
+model = torch.load('data/models/V8_model_fullV2.pth')
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
+model.eval()
 
-model = torch.load("data/models/V8_model.pth")
+CHUNK = 1050
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100
 
-# Audio-Parameter
-CHUNK = 1050  # Blockgröße | n teile von 44100
-FORMAT = pyaudio.paInt16  # Datenformat
-CHANNELS = 2  # Anzahl der Kanäle
-RATE = 44100  # Abtastrate
+def record_audio(duration=2):
+    frames = []
+    p = pyaudio.PyAudio()
+    stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+    try:
+        # Calculate the correct number of iterations to cover the duration
+        num_frames = int((RATE / CHUNK) * duration)
+        for _ in range(num_frames):
+            data = stream.read(CHUNK)
+            frames.append(data)
+    finally:
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+    return frames
 
+def save_temp_audio(frames, filename="temp_audio.wav"):
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(pyaudio.PyAudio().get_sample_size(FORMAT))
+        wf.setframerate(RATE)
+        wf.writeframes(b''.join(frames))
 
+def process_audio_file(filename):
+    class_names = {0: 'Noise', 1: 'Knock', 2: 'kn_se'} 
+    aud = AudioUtil.open(filename)
+    os.remove(filename)
+    # reaud = AudioUtil.resample(aud, RATE)
+    # rechan = AudioUtil.rechannel(reaud, CHANNELS)
+    # dur_aud = AudioUtil.pad_trunc(rechan, 2000)
+    rechan = AudioUtil.rechannel(aud, 2)
+    sgram = AudioUtil.spectro_gram(rechan, n_mels=64, n_fft=1024, hop_len=None)
+    # sgram = AudioUtil.spectro_gram(aud, n_mels=64, n_fft=1024, hop_len=None)
+    sgram = sgram.to(device)
+    model.eval()
+    with torch.no_grad():
+        inputs = sgram
 
+        # Normalize the inputs
+        inputs_m, inputs_s = inputs.mean(), inputs.std()
+        inputs = (inputs - inputs_m) / inputs_s
 
+        outputs = model(inputs.unsqueeze(0))
+
+        # Get the predicted class with the highest score
+        _, prediction = torch.max(outputs, 1)
+        # Convert predictions and actual labels to class names
+        predicted_classes = [class_names.get(p.item(), p.item()) for p in prediction][0]
+        print(outputs)
+    # print(prediction.item())
+    print(predicted_classes)
+    # if prediction > 0.5:
+    #     print("Klopfen erkannt!")
 
 print("Starte Klopfen-Erkennung...")
 while True:
-    p = pyaudio.PyAudio()
-
-    print("Öffne Mikrofon...")
-    stream = p.open(
-        format=pyaudio.paInt16,
-        channels=CHANNELS,
-        rate=RATE,
-        input=True,
-        frames_per_buffer=1024,
-    )
-    # Audiodaten vom Mikrofon lesen
-    start = time.time()
-        # Aufnahme und Speicherung der Audiodaten
-    frames = []
-    for i in range(0, int(RATE / CHUNK * 2)):
-        data = stream.read(CHUNK)
-        frames.append(data)
-
-    # Aufräumen
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-
-    end = time.time()
-    print(f"Time taken: {end-start}")
-
-    np_data = np.frombuffer(data, dtype=np.float32)
-
-    # Überprüfen, ob die Daten endliche Werte enthalten
-    if not np.all(np.isfinite(np_data)):
-        print("Warning: Audio data contains non-finite values. Replacing with zeros.")
-        np_data = np.nan_to_num(np_data)
-    
-    # -- new added code --
-    aud = torch.from_numpy(np_data).float()
-
-    reaud = AudioUtil.resample(aud, RATE)
-    rechan = AudioUtil.rechannel(reaud, CHANNELS)
-
-    dur_aud = AudioUtil.pad_trunc(rechan, 2000)
-    sgram = AudioUtil.spectro_gram(sgram, n_mels=64, n_fft=1024, hop_len=None)
-    # aug_sgram = AudioUtil.spectro_augment(sgram, max_mask_pct=0.1, n_freq_masks=2, n_time_masks=2)
-    prediction = model(sgram)
-
-    # Wenn Klopfen erkannt wird, Signal an Kopfhörer senden
-    if prediction > 0.5:
-        # Senden Sie ein Signal an Ihre Kopfhörer
-        # ...
-        print("Klopfen erkannt!")
+    frames = record_audio()
+    save_temp_audio(frames)
+    process_audio_file("temp_audio.wav")
