@@ -24,20 +24,16 @@ class SoundDS(Dataset):
   # Get i'th item in dataset
   # ----------------------------
   def __getitem__(self, idx):
-    # Absolute file path of the audio file - concatenate the audio directory with
-    # the relative path
-    audio_file = self.files[idx]
-    # Get the Class ID
-    # print(audio_file.split('_')[0])
 
+    audio_file = self.files[idx]
+
+    # Get the Class ID
     if audio_file.split('_')[0] == 'knock':
       class_id = 1
     else:
       class_id = 0
     if audio_file.split('_')[1] == 'with':
       class_id = 2
-
-    # class_id = 0 if audio_file.split('_')[0] == 'noise' else 1
 
     aud = AudioUtil.open(os.path.join(self.data_path, audio_file))
     # Some sounds have a higher sample rate, or fewer channels compared to the
