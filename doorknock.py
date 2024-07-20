@@ -3,6 +3,7 @@ import pyaudio
 import wave
 import os
 import model.AudioUtil as AudioUtil
+from model.AudioClassifier import AudioClassifier
 
 print(torch.__version__)
 model = torch.load('data/models/V8_model_fullV2.pth')
