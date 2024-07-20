@@ -1,6 +1,6 @@
 import os
 from torch.utils.data import Dataset
-import model.AudioUtil as AudioUtil
+import AudioUtil as AudioUtil
 
 # ----------------------------
 # Sound Dataset
