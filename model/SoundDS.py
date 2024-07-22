@@ -9,13 +9,14 @@ except:
 # Sound Dataset
 # ----------------------------
 class SoundDS(Dataset):
-  def __init__(self, data_path):
+  def __init__(self, data_path, num_classes=2):
     self.data_path = str(data_path)
     self.files = [f for f in os.listdir(data_path) if f.endswith('.wav')]
     self.duration = 2000
     self.sr = 44100
     self.channel = 2
     self.shift_pct = 0.4
+    self.num_classes = num_classes
             
   # ----------------------------
   # Number of items in dataset
@@ -35,8 +36,9 @@ class SoundDS(Dataset):
       class_id = 1
     else:
       class_id = 0
-    if len(audio_file.split('_')) > 1 and audio_file.split('_')[1] == 'with':
-      class_id = 2
+    if self.num_classes == 3:
+      if len(audio_file.split('_')) > 1 and audio_file.split('_')[1] == 'with':
+        class_id = 2
 
     aud = AudioUtil.open(os.path.join(self.data_path, audio_file))
     # Some sounds have a higher sample rate, or fewer channels compared to the
