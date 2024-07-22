@@ -1,6 +1,9 @@
 import os
 from torch.utils.data import Dataset
-import AudioUtil as AudioUtil
+try:
+  import AudioUtil as AudioUtil
+except:
+  import model.AudioUtil as AudioUtil
 
 # ----------------------------
 # Sound Dataset
@@ -32,7 +35,7 @@ class SoundDS(Dataset):
       class_id = 1
     else:
       class_id = 0
-    if audio_file.split('_')[1] == 'with':
+    if len(audio_file.split('_')) > 1 and audio_file.split('_')[1] == 'with':
       class_id = 2
 
     aud = AudioUtil.open(os.path.join(self.data_path, audio_file))
