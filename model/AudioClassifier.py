@@ -1,6 +1,7 @@
+import torch
 import torch.nn.functional as F
-from torch.nn import init
 import torch.nn as nn
+from torch.nn import init
 
 # ----------------------------
 # Audio Classification Model
@@ -62,7 +63,7 @@ class AudioClassifier (nn.Module):
 
         # Adaptive pool and flatten for input to linear layer
         x = self.ap(x)
-        x = x.view(x.shape[0], -1)
+        x = torch.flatten(x, 1)  # Flatten the output for the linear layer
 
         # Linear layer
         x = self.lin(x)
